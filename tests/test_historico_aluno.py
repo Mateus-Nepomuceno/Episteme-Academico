@@ -76,7 +76,7 @@ def test_historico_traz_apenas_turmas_encerradas_com_situacao(client, session):
         id=uuid4(), email='aluno@teste.com', e_admin=False, token='token-aluno'
     )
 
-    with patch('academico.turma_client.httpx.get', side_effect=_fake_get):
+    with patch('academico.turma_client._cliente_http.get', side_effect=_fake_get):
         resposta = client.get('/alunos/me/historico')
 
     app.dependency_overrides.pop(get_current_user, None)

@@ -52,7 +52,7 @@ def test_turma_matriculada_traz_media_frequencia_e_progresso(client, session):
             return_value=[turma],
         ),
         patch(
-            'academico.routers.matriculas.consultar_turma',
+            'academico.turma_client.consultar_turma',
             return_value=desempenho,
         ) as consulta,
     ):
@@ -100,7 +100,7 @@ def test_minhas_disciplinas_traz_nome_do_professor(client, session):
             return_value=[turma],
         ),
         patch(
-            'academico.routers.matriculas.consultar_turma',
+            'academico.turma_client.consultar_turma',
             return_value={'media': None, 'frequencia': None, 'progresso': None},
         ),
     ):

@@ -218,7 +218,7 @@ def test_solicitar_matricula_com_turma_simulada(
     }
 
     with patch(
-        "academico.turma_client.httpx.get",
+        "academico.turma_client._cliente_http.get",
         return_value=resposta_turma,
     ) as requisicao:
         resposta = client.post(
@@ -317,7 +317,7 @@ def test_solicitar_matricula_timeout_turma(client, autenticar):
     autenticar()
 
     with patch(
-        "academico.turma_client.httpx.get",
+        "academico.turma_client._cliente_http.get",
         side_effect=httpx.TimeoutException("timeout"),
     ):
         resposta = client.post(
@@ -340,7 +340,7 @@ def test_solicitar_matricula_falha_conexao_turma(
     autenticar()
 
     with patch(
-        "academico.turma_client.httpx.get",
+        "academico.turma_client._cliente_http.get",
         side_effect=httpx.ConnectError("conexão recusada"),
     ):
         resposta = client.post(
@@ -367,7 +367,7 @@ def test_solicitar_matricula_aluno_nao_encontrado(
     resposta_turma.is_error = True
 
     with patch(
-        "academico.turma_client.httpx.get",
+        "academico.turma_client._cliente_http.get",
         return_value=resposta_turma,
     ):
         resposta = client.post(
@@ -394,7 +394,7 @@ def test_solicitar_matricula_erro_interno_turma(
     resposta_turma.is_error = True
 
     with patch(
-        "academico.turma_client.httpx.get",
+        "academico.turma_client._cliente_http.get",
         return_value=resposta_turma,
     ):
         resposta = client.post(
@@ -425,7 +425,7 @@ def test_solicitar_matricula_ids_invalidos_turma(
     }
 
     with patch(
-        "academico.turma_client.httpx.get",
+        "academico.turma_client._cliente_http.get",
         return_value=resposta_turma,
     ):
         resposta = client.post(
@@ -456,7 +456,7 @@ def test_solicitar_matricula_curso_nao_cadastrado(
     }
 
     with patch(
-        "academico.turma_client.httpx.get",
+        "academico.turma_client._cliente_http.get",
         return_value=resposta_turma,
     ):
         resposta = client.post(
@@ -521,7 +521,7 @@ def test_solicitar_matricula_quando_ja_existe_pendente_retorna_conflito(
     }
 
     with patch(
-        "academico.turma_client.httpx.get",
+        "academico.turma_client._cliente_http.get",
         return_value=resposta_turma,
     ):
         resposta = client.post(
@@ -586,7 +586,7 @@ def test_atualizar_solicitacao_com_sucesso(
     }
 
     with patch(
-        "academico.turma_client.httpx.get",
+        "academico.turma_client._cliente_http.get",
         return_value=resposta_turma,
     ):
         resposta = client.put(

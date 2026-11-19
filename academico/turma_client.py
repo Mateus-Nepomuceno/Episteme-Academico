@@ -1,3 +1,4 @@
+from concurrent.futures import ThreadPoolExecutor
 from http import HTTPStatus
 from urllib.parse import quote
 from uuid import UUID
@@ -9,8 +10,18 @@ from academico.settings import Settings
 
 settings = Settings()
 
-TIMEOUT_SEGUNDOS = 5.0
+TIMEOUT_SEGUNDOS = settings.TURMA_TIMEOUT_SEGUNDOS
 TAMANHO_PAGINA = 100
+MAX_WORKERS_TURMA = 10
+
+_LIMITES_HTTP = httpx.Limits(
+    max_keepalive_connections=20,
+    max_connections=40,
+)
+_cliente_http = httpx.Client(
+    limits=_LIMITES_HTTP,
+    timeout=TIMEOUT_SEGUNDOS,
+)
 
 MSG_TIMEOUT = 'O serviço de turma demorou para responder'
 MSG_INDISPONIVEL = 'Não foi possível acessar o serviço de turma'
@@ -25,7 +36,7 @@ def _requisitar(caminho, token, params=None):
     url = f'{settings.TURMA_API_URL.rstrip("/")}{caminho}'
 
     try:
-        return httpx.get(
+        return _cliente_http.get(
             url,
             params=params,
             headers={'Authorization': f'Bearer {token}'},
@@ -167,3 +178,19 @@ def consultar_turma(caminho: str, token: str):
         raise HTTPException(
             status_code=HTTPStatus.BAD_GATEWAY, detail=MSG_RESPOSTA_INVALIDA
         ) from exc
+
+
+def consultar_turmas_em_paralelo(caminhos: list[str], token: str) -> list:
+    if not caminhos:
+        return []
+
+    if len(caminhos) == 1:
+        return [consultar_turma(caminhos[0], token)]
+
+    max_workers = min(len(caminhos), MAX_WORKERS_TURMA)
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        futuros = [
+            executor.submit(consultar_turma, caminho, token)
+            for caminho in caminhos
+        ]
+        return [futuro.result() for futuro in futuros]

@@ -25,6 +25,7 @@ from academico.security import CurrentUser, get_current_user
 from academico.turma_client import (
     buscar_aluno_por_usuario,
     consultar_turma,
+    consultar_turmas_em_paralelo,
     listar_turmas_do_aluno,
 )
 
@@ -63,12 +64,10 @@ def read_resumo(
 ):
     aluno_id, turmas = _aluno_e_turmas(current_user)
 
-    desempenhos = [
-        consultar_turma(
-            f'/alunos/me/turmas/{turma["id"]}/desempenho', current_user.token
-        )
-        for turma in turmas
+    caminhos = [
+        f'/alunos/me/turmas/{turma["id"]}/desempenho' for turma in turmas
     ]
+    desempenhos = consultar_turmas_em_paralelo(caminhos, current_user.token)
     medias = [d['media'] for d in desempenhos if d['media'] is not None]
     frequencias = [d['frequencia'] for d in desempenhos if d['frequencia'] is not None]
 
@@ -95,12 +94,12 @@ def read_pendencias(
 ):
     _, turmas = _aluno_e_turmas(current_user)
 
+    caminhos = [f'/turmas/{turma["id"]}/atividades' for turma in turmas]
+    respostas = consultar_turmas_em_paralelo(caminhos, current_user.token)
+
     pendencias = []
-    for turma in turmas:
-        atividades = consultar_turma(
-            f'/turmas/{turma["id"]}/atividades', current_user.token
-        )['atividades']
-        for atividade in atividades:
+    for turma, resposta in zip(turmas, respostas, strict=True):
+        for atividade in resposta['atividades']:
             if atividade['situacao'] in SITUACOES_PENDENTES:
                 pendencias.append(
                     PendenciaAluno(
@@ -125,12 +124,14 @@ def read_notas_recentes(
 ):
     _, turmas = _aluno_e_turmas(current_user)
 
+    caminhos = [
+        f'/alunos/me/turmas/{turma["id"]}/notas' for turma in turmas
+    ]
+    respostas = consultar_turmas_em_paralelo(caminhos, current_user.token)
+
     notas = []
-    for turma in turmas:
-        registros = consultar_turma(
-            f'/alunos/me/turmas/{turma["id"]}/notas', current_user.token
-        )['notas']
-        for registro in registros:
+    for turma, resposta in zip(turmas, respostas, strict=True):
+        for registro in resposta['notas']:
             if registro['valor'] is not None:
                 notas.append(
                     NotaRecenteAluno(
@@ -156,11 +157,16 @@ def read_compromissos(
     hoje = date.today()
     agora = datetime.now()
 
-    compromissos = []
+    caminhos = []
     for turma in turmas:
-        avaliacoes = consultar_turma(
-            f'/turmas/{turma["id"]}/avaliacoes', current_user.token
-        )['avaliacoes']
+        caminhos.append(f'/turmas/{turma["id"]}/avaliacoes')
+        caminhos.append(f'/turmas/{turma["id"]}/atividades')
+
+    respostas = consultar_turmas_em_paralelo(caminhos, current_user.token)
+
+    compromissos = []
+    for indice, turma in enumerate(turmas):
+        avaliacoes = respostas[indice * 2]['avaliacoes']
         for avaliacao in avaliacoes:
             data = date.fromisoformat(avaliacao['data'])
             if data >= hoje:
@@ -175,9 +181,7 @@ def read_compromissos(
                     )
                 )
 
-        atividades = consultar_turma(
-            f'/turmas/{turma["id"]}/atividades', current_user.token
-        )['atividades']
+        atividades = respostas[indice * 2 + 1]['atividades']
         for atividade in atividades:
             prazo = datetime.fromisoformat(atividade['prazo'])
             if atividade['situacao'] == 'pendente' and prazo >= agora:
@@ -237,24 +241,28 @@ def read_historico(
 ):
     _, turmas = _aluno_e_turmas(current_user)
 
-    disciplinas = []
-    for turma in turmas:
-        if turma.get('encerrada_em') is None:
-            continue
+    turmas_encerradas = [
+        turma for turma in turmas if turma.get('encerrada_em') is not None
+    ]
+    caminhos = [
+        f'/alunos/me/turmas/{turma["id"]}/desempenho'
+        for turma in turmas_encerradas
+    ]
+    desempenhos = consultar_turmas_em_paralelo(caminhos, current_user.token)
 
-        desempenho = consultar_turma(
-            f'/alunos/me/turmas/{turma["id"]}/desempenho', current_user.token
+    disciplinas = [
+        {
+            'turma_id': turma['id'],
+            'disciplina': turma['materia'],
+            'periodo_letivo': turma.get('periodo_letivo'),
+            'nota_final': desempenho['nota_final'],
+            'frequencia_final': desempenho['frequencia_final'],
+            'situacao': desempenho['situacao'],
+        }
+        for turma, desempenho in zip(
+            turmas_encerradas, desempenhos, strict=True
         )
-        disciplinas.append(
-            {
-                'turma_id': turma['id'],
-                'disciplina': turma['materia'],
-                'periodo_letivo': turma.get('periodo_letivo'),
-                'nota_final': desempenho['nota_final'],
-                'frequencia_final': desempenho['frequencia_final'],
-                'situacao': desempenho['situacao'],
-            }
-        )
+    ]
 
     disciplinas.sort(key=lambda d: d['periodo_letivo'] or '')
     return {'disciplinas': disciplinas}

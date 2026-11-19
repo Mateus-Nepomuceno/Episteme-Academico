@@ -175,7 +175,7 @@ def test_resumo_calcula_medias_e_horas_aprovadas(client, session, autenticado):
     )
     session.commit()
 
-    with patch('academico.turma_client.httpx.get', side_effect=_fake_get()):
+    with patch('academico.turma_client._cliente_http.get', side_effect=_fake_get()):
         resposta = client.get('/alunos/me/resumo')
 
     assert resposta.status_code == HTTPStatus.OK
@@ -188,7 +188,7 @@ def test_resumo_calcula_medias_e_horas_aprovadas(client, session, autenticado):
 
 def test_resumo_sem_cadastro_de_aluno_devolve_vazio(client, session, autenticado):
     with patch(
-        'academico.turma_client.httpx.get',
+        'academico.turma_client._cliente_http.get',
         side_effect=_fake_get(usuario_encontrado=False),
     ):
         resposta = client.get('/alunos/me/resumo')
@@ -203,7 +203,7 @@ def test_resumo_sem_cadastro_de_aluno_devolve_vazio(client, session, autenticado
 def test_pendencias_incluem_vencidas_e_pendentes_ordenadas_por_prazo(
     client, session, autenticado
 ):
-    with patch('academico.turma_client.httpx.get', side_effect=_fake_get()):
+    with patch('academico.turma_client._cliente_http.get', side_effect=_fake_get()):
         resposta = client.get('/alunos/me/pendencias')
 
     titulos = [p['titulo'] for p in resposta.json()['pendencias']]
@@ -211,7 +211,7 @@ def test_pendencias_incluem_vencidas_e_pendentes_ordenadas_por_prazo(
 
 
 def test_notas_recentes_ignoram_notas_nao_lancadas(client, session, autenticado):
-    with patch('academico.turma_client.httpx.get', side_effect=_fake_get()):
+    with patch('academico.turma_client._cliente_http.get', side_effect=_fake_get()):
         resposta = client.get('/alunos/me/notas/recentes?limite=5')
 
     notas = resposta.json()['notas']
@@ -222,7 +222,7 @@ def test_notas_recentes_ignoram_notas_nao_lancadas(client, session, autenticado)
 def test_compromissos_trazem_provas_futuras_e_entregas_pendentes(
     client, session, autenticado
 ):
-    with patch('academico.turma_client.httpx.get', side_effect=_fake_get()):
+    with patch('academico.turma_client._cliente_http.get', side_effect=_fake_get()):
         resposta = client.get('/alunos/me/compromissos')
 
     tipos = [(c['titulo'], c['tipo']) for c in resposta.json()['compromissos']]
@@ -237,7 +237,7 @@ def test_proximas_aulas_caem_no_dia_da_semana_do_horario(
 ):
     dia_da_semana = {'Banco de Dados': 0, 'Redes': 4}
 
-    with patch('academico.turma_client.httpx.get', side_effect=_fake_get()):
+    with patch('academico.turma_client._cliente_http.get', side_effect=_fake_get()):
         resposta = client.get('/alunos/me/proximas-aulas')
 
     aulas = resposta.json()['aulas']

@@ -107,7 +107,7 @@ def test_aluno_recebe_disciplinas_com_turmas_relacionadas_pelo_codigo(
     ]
 
     with patch(
-        'academico.turma_client.httpx.get',
+        'academico.turma_client._cliente_http.get',
         side_effect=turma_falso(turmas),
     ):
         resposta = client.get('/matricula/minhas-disciplinas')
@@ -145,7 +145,7 @@ def test_aluno_sem_turmas_recebe_lista_vazia(
     criar_disciplina('BD002', 'Banco de Dados II')
 
     with patch(
-        'academico.turma_client.httpx.get',
+        'academico.turma_client._cliente_http.get',
         side_effect=turma_falso([]),
     ):
         resposta = client.get('/matricula/minhas-disciplinas')
@@ -158,7 +158,7 @@ def test_turmas_sem_disciplina_cadastrada_nao_aparecem(client, autenticar):
     autenticar()
 
     with patch(
-        'academico.turma_client.httpx.get',
+        'academico.turma_client._cliente_http.get',
         side_effect=turma_falso([turma_json('BD002')]),
     ):
         resposta = client.get('/matricula/minhas-disciplinas')
@@ -170,7 +170,7 @@ def test_turma_indisponivel_responde_503(client, autenticar):
     autenticar()
 
     with patch(
-        'academico.turma_client.httpx.get',
+        'academico.turma_client._cliente_http.get',
         side_effect=turma_falso(
             erro_turmas=httpx.ConnectError('conexão recusada')
         ),
@@ -198,7 +198,7 @@ def test_turma_recusa_acesso_responde_403(client, autenticar):
             403, json={'detail': 'Permissão negada'}, request=requisicao
         )
 
-    with patch('academico.turma_client.httpx.get', side_effect=get):
+    with patch('academico.turma_client._cliente_http.get', side_effect=get):
         resposta = client.get('/matricula/minhas-disciplinas')
 
     assert resposta.status_code == HTTPStatus.FORBIDDEN
@@ -219,7 +219,7 @@ def test_resposta_invalida_da_turma_responde_502(client, autenticar):
             200, json={'turmas': 'invalido'}, request=requisicao
         )
 
-    with patch('academico.turma_client.httpx.get', side_effect=get):
+    with patch('academico.turma_client._cliente_http.get', side_effect=get):
         resposta = client.get('/matricula/minhas-disciplinas')
 
     assert resposta.status_code == HTTPStatus.BAD_GATEWAY
@@ -243,7 +243,7 @@ def test_usuario_sem_cadastro_de_aluno_recebe_404(client, autenticar):
             request=httpx.Request('GET', url),
         )
 
-    with patch('academico.turma_client.httpx.get', side_effect=get):
+    with patch('academico.turma_client._cliente_http.get', side_effect=get):
         resposta = client.get('/matricula/minhas-disciplinas')
 
     assert resposta.status_code == HTTPStatus.NOT_FOUND

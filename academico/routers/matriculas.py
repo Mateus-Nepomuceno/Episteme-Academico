@@ -40,7 +40,7 @@ from academico.security import (
 )
 from academico.turma_client import (
     buscar_aluno_por_usuario,
-    consultar_turma,
+    consultar_turmas_em_paralelo,
     listar_ofertas,
     listar_turmas_do_aluno,
 )
@@ -518,13 +518,12 @@ def consultar_minhas_disciplinas(
 
     turmas = listar_turmas_do_aluno(aluno_id, current_user.token)
 
-    for turma in turmas:
-        turma.update(
-            consultar_turma(
-                f'/alunos/me/turmas/{turma["id"]}/desempenho',
-                current_user.token,
-            )
-        )
+    caminhos = [
+        f'/alunos/me/turmas/{turma["id"]}/desempenho' for turma in turmas
+    ]
+    desempenhos = consultar_turmas_em_paralelo(caminhos, current_user.token)
+    for turma, desempenho in zip(turmas, desempenhos, strict=True):
+        turma.update(desempenho)
 
     codigos = {turma["codigo"] for turma in turmas if turma.get("codigo")}
 
